@@ -1,11 +1,13 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import * as cocossd from "@tensorflow-models/coco-ssd";
 import Webcam from "react-webcam";
 import "./App.css";
 import { drawRect } from "./utilities";
+import axios from "axios";
 
 function App() {
+  const [result, setResult] = useState("");
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -19,7 +21,16 @@ function App() {
     }, 10);
   };
 
+  let detectionInProgress = false;
   const detect = async (net) => {
+
+
+    if (detectionInProgress) {
+      return;
+    }
+
+    detectionInProgress = true;
+
     // Check data is available
     if (
       typeof webcamRef.current !== "undefined" &&
@@ -49,6 +60,20 @@ function App() {
       // drawSomething(obj, ctx)  
 
       drawRect(obj, ctx);
+
+      if (obj.length > 0) {
+        const firstObj = obj[0];
+        const response = await axios.post("http://localhost:8000/detect", {
+          obj: firstObj.class
+        })
+
+        setResult(response.data.waterfootprint);
+        console.log(response.data);
+        console.log(response.data.waterfootprint);
+
+        detectionInProgress = false
+      }
+
     }
   };
 
@@ -57,6 +82,9 @@ function App() {
   }, []);
   return (
     <>
+      <div>
+        {result}
+      </div>
       <div className="App">
         <header className="App-header">
           <Webcam
